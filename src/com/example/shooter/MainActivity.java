@@ -30,7 +30,7 @@ public class MainActivity extends Activity {
     private void refineDex() {
         Dex dex = null;
         try {
-            dex = new Dex(new File("/data/app/com.example.victim-2.apk"));
+            dex = new Dex(new File("/data/app/com.example.victim-1.apk"));
         } catch (IOException e) {
             e.printStackTrace();
             return;
