@@ -37,7 +37,8 @@ public class MainActivity extends Activity {
         }
 
         DexManager dm = new DexManager(dex);
-        dm.hackDex("Lcom/example/victim/MainApplication;");
+        dm.prepare(this);
+        dm.hackDex("Lcom/example/victim/MainApplication;", "Lcom/example/victim/MainApplication;.onCreate()");
 
         try {
             File newdex = new File(this.getFilesDir(), "classes-1.dex");
