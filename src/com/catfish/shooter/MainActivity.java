@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 import android.app.Activity;
 import android.os.Bundle;
 
-import com.catfish.shooter.dexmanager.DexManager;
+import com.catfish.shooter.dexfixer.DexFixer;
 
 import dalvik.system.DexClassLoader;
 
@@ -25,12 +25,17 @@ public class MainActivity extends Activity {
     }
 
     private void refineDex() {
-        DexManager dm = new DexManager("/data/dalvik-cache/data@app@com.example.victim-1.apk@classes.dex", this);
-        dm.hackDexByMethod("Lcom/example/victim/MainApplication;->onCreate()V", true);
+        new DexFixer(this)
+        .prepareForDex("/data/dalvik-cache/data@app@com.example.victim-1.apk@classes.dex")
+        .fixDexByMethod("Lcom/example/victim/MainApplication;->onCreate()V",
+                "const-string v0 \"catfish\"\n"
+                        + "const-string v1 \"victim APP ONCREATE\"\n"
+                        + "invoke-static {v0,v1} Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I\n"
+                        + "return-void");
     }
 
     private void testNewDex() {
-        ClassLoader cl = new DexClassLoader("/data/data/com.catfish.shooter/files/victim.dex", "/data/data/com.catfish.shooter/cache", null, this.getClassLoader());
+        ClassLoader cl = new DexClassLoader("/data/data/com.catfish.shooter/files/data@app@com.example.victim-1.apk@classes.dex", "/data/data/com.catfish.shooter/cache", null, this.getClassLoader());
         try {
             Class<?> clz = cl.loadClass("com.example.victim.MainApplication");
             Object app = clz.newInstance();
