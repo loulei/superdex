@@ -48,7 +48,7 @@ public class DexFixer {
         mDexFile = mReflect.newInstance("org.jf.dexlib.DexFile", new Class[] { String.class }, new Object[] { dexPath });
     }
 
-    public void fixDexByMethod(String methoddesc, String instruction) {
+    public void insertDexByMethod(String methoddesc, String instruction) {
         if (mDexFile == null) {
             throw new RuntimeException("you need call prepareForDex first");
         }
@@ -61,7 +61,8 @@ public class DexFixer {
         mReflect.reflectMethod("mao.dalvik.Parser", "dump", new Class<?>[] { writer.getClass() }, parser, new Object[] { writer });
         LogUtil.d("method insns --- " + sb.toString());
 
-        mReflect.reflectMethod("mao.dalvik.Parser", "parse", new Class<?>[] { mDexFile.getClass(), String.class }, parser, new Object[] { mDexFile, instruction });
+        sb.insert(0, instruction);
+        mReflect.reflectMethod("mao.dalvik.Parser", "parse", new Class<?>[] { mDexFile.getClass(), String.class }, parser, new Object[] { mDexFile, sb.toString() });
         mReflect.reflectMethod(mDexFile.getClass().getName(), "place", null, mDexFile, null);
 
         int size = (Integer) mReflect.reflectMethod(mDexFile.getClass().getName(), "getFileSize", null, mDexFile, null);
@@ -150,4 +151,9 @@ public class DexFixer {
         return null;
     }
 
+    public static void fixTimeStampAndCrc(String srcODex, String targetODex) {
+        File src = new File(srcODex);
+        File target = new File(targetODex);
+        
+    }
 }
