@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.util.List;
 
 import android.content.Context;
@@ -61,8 +62,10 @@ public class DexFixer {
         mReflect.reflectMethod("mao.dalvik.Parser", "dump", new Class<?>[] { writer.getClass() }, parser, new Object[] { writer });
         LogUtil.d("method insns --- " + sb.toString());
 
-        sb.insert(0, instruction);
-        mReflect.reflectMethod("mao.dalvik.Parser", "parse", new Class<?>[] { mDexFile.getClass(), String.class }, parser, new Object[] { mDexFile, sb.toString() });
+        // sb.insert(0, instruction);
+        LogUtil.i("new method insns --- " + sb.toString());
+        mReflect.reflectMethod("mao.dalvik.Parser", "parse", new Class<?>[] { mDexFile.getClass(), String.class }, parser, new Object[] { mDexFile, instruction });
+        mReflect.reflectMethod(mDexFile.getClass().getName(), "setInplace", new Class<?>[] { boolean.class }, mDexFile, new Object[] { true });
         mReflect.reflectMethod(mDexFile.getClass().getName(), "place", null, mDexFile, null);
 
         int size = (Integer) mReflect.reflectMethod(mDexFile.getClass().getName(), "getFileSize", null, mDexFile, null);
@@ -92,10 +95,11 @@ public class DexFixer {
         if (methoddesc == null) {
             throw new IllegalArgumentException("method description can not be null");
         }
-        Object ClassDataSection = mReflect.reflectField(mDexFile.getClass().getName(), "ClassDataSection", mDexFile);
-        List<?> data = (List<?>) mReflect.reflectMethod("org.jf.dexlib.Section", "getItems", null, ClassDataSection, null);
-        for (Object cdi : data) {
-            Object[] ms = (Object[]) mReflect.reflectMethod(cdi.getClass().getName(), "getVirtualMethods", null, cdi, null);
+        Object ClassDefsSection = mReflect.reflectField(mDexFile.getClass().getName(), "ClassDefsSection", mDexFile);
+        List<?> data = (List<?>) mReflect.reflectMethod("org.jf.dexlib.Section", "getItems", null, ClassDefsSection, null);
+        for (Object ClassDefItem : data) {
+            Object ClassDataItem = mReflect.reflectMethod(ClassDefItem.getClass().getName(), "getClassData", null, ClassDefItem, null);
+            Object[] ms = (Object[]) mReflect.reflectMethod(ClassDataItem.getClass().getName(), "getVirtualMethods", null, ClassDataItem, null);
             if (ms != null) {
                 for (Object m : ms) {
                     Object method = mReflect.reflectField(m.getClass().getName(), "method", m);
@@ -106,7 +110,7 @@ public class DexFixer {
                     }
                 }
             }
-            ms = (Object[]) mReflect.reflectMethod(cdi.getClass().getName(), "getDirectMethods", null, cdi, null);
+            ms = (Object[]) mReflect.reflectMethod(ClassDataItem.getClass().getName(), "getDirectMethods", null, ClassDataItem, null);
             if (ms != null) {
                 for (Object m : ms) {
                     Object method = mReflect.reflectField(m.getClass().getName(), "method", m);
@@ -130,7 +134,7 @@ public class DexFixer {
                 file.createNewFile();
             }
             if (file.lastModified() > new File(mContext.getPackageCodePath()).lastModified()) {
-                return file.getAbsolutePath();
+                // return file.getAbsolutePath();
             }
             FileOutputStream fos = new FileOutputStream(path + filename);
             InputStream inputStream = assetManager.open(filename);
@@ -152,8 +156,47 @@ public class DexFixer {
     }
 
     public static void fixTimeStampAndCrc(String srcODex, String targetODex) {
-        File src = new File(srcODex);
-        File target = new File(targetODex);
-        
+        try {
+            RandomAccessFile srcFile = new RandomAccessFile(srcODex, "rw");
+            RandomAccessFile tarFile = new RandomAccessFile(targetODex, "rw");
+
+            int offset = getDepsOffset(srcFile);
+            LogUtil.d("offset: --- " + Integer.toHexString(offset));
+
+            srcFile.seek(offset);
+            int modeTime = srcFile.readInt();
+            int crc = srcFile.readInt();
+            LogUtil.d("modeTime: --- " + Integer.toHexString(modeTime));
+            LogUtil.d("crc: --- " + Integer.toHexString(crc));
+
+            offset = getDepsOffset(tarFile);
+            LogUtil.d("offset: --- " + Integer.toHexString(offset));
+
+            tarFile.seek(offset);
+            tarFile.writeInt(modeTime);
+            tarFile.writeInt(crc);
+
+            srcFile.close();
+            tarFile.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // for little-end
+    private static int getDepsOffset(RandomAccessFile file) {
+        int result = 0;
+        try {
+            file.seek(16);
+            int tesffo = file.readInt();
+            result |= ((tesffo << 24) & 0xFF000000);
+            result |= ((tesffo << 8) & 0xFF0000);
+            result |= ((tesffo >> 8) & 0xFF00);
+            result |= ((tesffo >> 24) & 0xFF);
+            return result;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 }
