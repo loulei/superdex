@@ -49,16 +49,43 @@ public class DexFixer {
         mDexFile = mReflect.newInstance("org.jf.dexlib.DexFile", new Class[] { String.class }, new Object[] { dexPath });
     }
 
-    public void replaceSuperClass(String proxyDex, String tagetclassname) {
+    public void insertDexBySuperClass(String proxyDex, String tagetclassname) {
+        mergeDex(proxyDex);
+
+        Object proxyClass = findClassDefItem("Lcom/catfish/shooter/MainActivity;");
+        Object targetClass = findClassDefItem(tagetclassname);
+        Object proxyType = mReflect.reflectField(proxyClass.getClass().getName(), "classType", proxyClass);
+        mReflect.setReflectField(targetClass.getClass().getName(), "superType", targetClass, proxyType);
+
+        createNewDex();
+    }
+
+    private void mergeDex(String proxyDex) {
         Object toolActivity = mReflect.newInstance("mao.bytecode.ClassListActivity", null, null);
-        LogUtil.i("toolActivity=" + toolActivity);
-
         mReflect.reflectMethod(toolActivity.getClass().getName(), "init", null, toolActivity, null);
-
         mReflect.setReflectField(toolActivity.getClass().getName(), "dexFile", toolActivity, mDexFile);
         mReflect.reflectMethod(toolActivity.getClass().getName(), "mergerDexFile", new Class[] { String.class }, toolActivity, new Object[] { proxyDex });
 
-        createNewDex();
+        mReflect.reflectMethod(mDexFile.getClass().getName(), "setInplace", new Class<?>[] { boolean.class }, mDexFile, new Object[] { false });
+        mReflect.reflectMethod(mDexFile.getClass().getName(), "place", null, mDexFile, null);
+    }
+
+    private Object findClassDefItem(String tagetclassname) {
+        if (tagetclassname == null) {
+            throw new IllegalArgumentException("tagetclassname can not be null");
+        }
+        Object ClassDefsSection = mReflect.reflectField(mDexFile.getClass().getName(), "ClassDefsSection", mDexFile);
+        List<?> data = (List<?>) mReflect.reflectMethod("org.jf.dexlib.Section", "getItems", null, ClassDefsSection, null);
+        for (Object ClassDefItem : data) {
+            Object TypeIdItem = mReflect.reflectField(ClassDefItem.getClass().getName(), "classType", ClassDefItem);
+            Object StringIdItem = mReflect.reflectField(TypeIdItem.getClass().getName(), "typeDescriptor", TypeIdItem);
+            String strValue = (String) mReflect.reflectMethod(StringIdItem.getClass().getName(), "getStringValue", null, StringIdItem, null);
+            if (strValue.equals(tagetclassname)) {
+                LogUtil.i("found class  --- " + tagetclassname);
+                return ClassDefItem;
+            }
+        }
+        return null;
     }
 
     public void insertDexByMethod(String methoddesc, String instruction) {

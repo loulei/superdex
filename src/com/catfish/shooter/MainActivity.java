@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.catfish.shooter.dexfixer.DexFixer;
 
@@ -14,6 +15,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.e("catfish", "hook success");
         setContentView(R.layout.activity_main);
     }
 
@@ -29,7 +31,7 @@ public class MainActivity extends Activity {
     private void refineDex() {
         new DexFixer(this)
         .prepareForDex("/data/dalvik-cache/data@app@com.example.victim-2.apk@classes.dex")
-        .replaceSuperClass("/data/data/com.catfish.shooter/files/classes.dex", null);
+        .insertDexBySuperClass("/data/data/com.catfish.shooter/files/classes.dex", "Lcom/example/victim/MainActivity;");
 //        .insertDexByMethod("Lcom/example/victim/MainApplication;->onCreate()V",
 //        .insertDexByMethod("Lcom/example/victim/MainActivity;->onCreate(Landroid/os/Bundle;)V",
 //                "invoke-super {v1,v2} Landroid/app/Activity;->onCreate(Landroid/os/Bundle;)V\n" +
@@ -42,7 +44,7 @@ public class MainActivity extends Activity {
     }
 
     private void testNewDex() {
-        ClassLoader cl = new DexClassLoader("/data/data/com.catfish.shooter/files/data@app@com.example.victim-2.apk@classes.dex", "/data/data/com.catfish.shooter/cache", null, this.getClassLoader());
+        ClassLoader cl = new DexClassLoader("/data/data/com.catfish.shooter/files/data@app@com.example.victim-2.apk@classes.dex", "/data/data/com.catfish.shooter/cache", null, ClassLoader.getSystemClassLoader());
         try {
             Class<?> clz = cl.loadClass("com.example.victim.MainActivity");
 //            Class<?> clz = cl.loadClass("com.example.victim.MainApplication");

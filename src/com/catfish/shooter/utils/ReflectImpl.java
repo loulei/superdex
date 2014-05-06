@@ -85,7 +85,6 @@ public class ReflectImpl {
         } catch (IllegalArgumentException e) {
             Log.e(LogUtil.TAG, e.getMessage(), e);
         } catch (InvocationTargetException e) {
-            Log.e(LogUtil.TAG, e.getMessage(), e);
         }
         return null;
     }
