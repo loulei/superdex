@@ -26,10 +26,29 @@ public class ReflectImpl {
         return null;
     }
 
+    public void setReflectField(String classname, String fieldname, Object receiver, Object value) {
+        Class<?> clz = reflectClass(classname);
+        if (clz == null) {
+            Log.e(LogUtil.TAG, "setReflectField: did not find class");
+            return;
+        }
+        try {
+            Field f = clz.getDeclaredField(fieldname);
+            f.setAccessible(true);
+            f.set(receiver, value);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        }
+    }
+
     public Object reflectField(String classname, String fieldname, Object receiver) {
         Class<?> clz = reflectClass(classname);
         if (clz == null) {
-            Log.e(LogUtil.TAG, "did not find class");
+            Log.e(LogUtil.TAG, "reflectField: did not find class");
             return null;
         }
         try {
@@ -55,15 +74,18 @@ public class ReflectImpl {
         try {
             Method m = clz.getDeclaredMethod(methodname, types == null ? (Class[]) null : types);
             m.setAccessible(true);
+            if (paramethers == null) {
+                return m.invoke(receiver);
+            }
             return m.invoke(receiver, paramethers);
         } catch (NoSuchMethodException e) {
-            LogUtil.d(e.getMessage(), e);
+            Log.e(LogUtil.TAG, e.getMessage(), e);
         } catch (IllegalAccessException e) {
-            LogUtil.d(e.getMessage(), e);
+            Log.e(LogUtil.TAG, e.getMessage(), e);
         } catch (IllegalArgumentException e) {
-            LogUtil.d(e.getMessage(), e);
+            Log.e(LogUtil.TAG, e.getMessage(), e);
         } catch (InvocationTargetException e) {
-            LogUtil.d(e.getMessage(), e);
+            Log.e(LogUtil.TAG, e.getMessage(), e);
         }
         return null;
     }

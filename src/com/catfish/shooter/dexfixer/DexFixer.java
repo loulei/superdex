@@ -49,6 +49,18 @@ public class DexFixer {
         mDexFile = mReflect.newInstance("org.jf.dexlib.DexFile", new Class[] { String.class }, new Object[] { dexPath });
     }
 
+    public void replaceSuperClass(String proxyDex, String tagetclassname) {
+        Object toolActivity = mReflect.newInstance("mao.bytecode.ClassListActivity", null, null);
+        LogUtil.i("toolActivity=" + toolActivity);
+
+        mReflect.reflectMethod(toolActivity.getClass().getName(), "init", null, toolActivity, null);
+
+        mReflect.setReflectField(toolActivity.getClass().getName(), "dexFile", toolActivity, mDexFile);
+        mReflect.reflectMethod(toolActivity.getClass().getName(), "mergerDexFile", new Class[] { String.class }, toolActivity, new Object[] { proxyDex });
+
+        createNewDex();
+    }
+
     public void insertDexByMethod(String methoddesc, String instruction) {
         if (mDexFile == null) {
             throw new RuntimeException("you need call prepareForDex first");
@@ -65,9 +77,13 @@ public class DexFixer {
         // sb.insert(0, instruction);
         LogUtil.i("new method insns --- " + sb.toString());
         mReflect.reflectMethod("mao.dalvik.Parser", "parse", new Class<?>[] { mDexFile.getClass(), String.class }, parser, new Object[] { mDexFile, instruction });
-        mReflect.reflectMethod(mDexFile.getClass().getName(), "setInplace", new Class<?>[] { boolean.class }, mDexFile, new Object[] { true });
-        mReflect.reflectMethod(mDexFile.getClass().getName(), "place", null, mDexFile, null);
 
+        createNewDex();
+    }
+
+    private void createNewDex() {
+        mReflect.reflectMethod(mDexFile.getClass().getName(), "setInplace", new Class<?>[] { boolean.class }, mDexFile, new Object[] { false });
+        mReflect.reflectMethod(mDexFile.getClass().getName(), "place", null, mDexFile, null);
         int size = (Integer) mReflect.reflectMethod(mDexFile.getClass().getName(), "getFileSize", null, mDexFile, null);
         byte[] data = new byte[size];
         Object output = mReflect.newInstance("org.jf.dexlib.Util.ByteArrayAnnotatedOutput", new Class[] { byte[].class }, new Object[] { data });
@@ -76,15 +92,11 @@ public class DexFixer {
         mReflect.reflectMethod(mDexFile.getClass().getName(), "calcSignature", new Class[] { byte[].class }, mDexFile, new Object[] { data });
         mReflect.reflectMethod(mDexFile.getClass().getName(), "calcChecksum", new Class[] { byte[].class }, mDexFile, new Object[] { data });
 
-        createNewDex(data);
-    }
-
-    private void createNewDex(byte[] dexbytes) {
         String[] dexpaths = mDexPath.split("/");
         String outFile = mContext.getFilesDir().getAbsolutePath() + "/" + dexpaths[dexpaths.length - 1];
         try {
             FileOutputStream os = new FileOutputStream(outFile);
-            os.write(dexbytes);
+            os.write(data);
             os.close();
         } catch (Exception e) {
             Log.e(LogUtil.TAG, e.getMessage(), e);
