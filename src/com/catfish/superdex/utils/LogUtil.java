@@ -1,4 +1,4 @@
-package com.catfish.shooter.utils;
+package com.catfish.superdex.utils;
 
 import android.util.Log;
 
