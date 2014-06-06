@@ -8,7 +8,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.android.dx.merge.DexMerger;
-import com.catfish.superdex.dexfixer.DexPatcher;
+import com.catfish.superdex.dexpatcher.DexPatcher;
 
 import dalvik.system.DexClassLoader;
 

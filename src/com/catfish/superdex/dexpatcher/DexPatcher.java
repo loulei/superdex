@@ -1,4 +1,4 @@
-package com.catfish.superdex.dexfixer;
+package com.catfish.superdex.dexpatcher;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,7 +28,16 @@ public class DexPatcher {
         }
         EncodedMethod needleMethod = findMethod(dex, needlemethodname);
         EncodedMethod targetMethod = findMethod(dex, tagetmethodname);
+        insertInstructions(dex, needleMethod, targetMethod);
 
+        dex.setInplace(false);
+        dex.place();
+
+        createNewOdex(dex, dexFile);
+    }
+
+    //needle inserts at the front of the target
+    private static void insertInstructions(DexFile dex, EncodedMethod needleMethod, EncodedMethod targetMethod) {
         Instruction[] needleInsns = needleMethod.codeItem.getInstructions();
         Instruction[] targetInsns = targetMethod.codeItem.getInstructions();
         Instruction[] newIns = new Instruction[needleInsns.length + targetInsns.length];
@@ -48,11 +57,6 @@ public class DexPatcher {
         int needleIn = needleMethod.codeItem.inWords;
         int targetIn = targetMethod.codeItem.inWords;
         targetMethod.codeItem.inWords = needleIn > targetIn ? needleIn : targetIn;
-
-        dex.setInplace(false);
-        dex.place();
-
-         createNewOdex(dex, dexFile);
     }
 
     private static EncodedMethod findMethod(DexFile dex, String methodname) {
@@ -85,7 +89,7 @@ public class DexPatcher {
         return null;
     }
 
-    public static String createNewOdex(DexFile dex, String out) {
+    private static String createNewOdex(DexFile dex, String out) {
         byte[] data = new byte[dex.getFileSize()];
 
         ByteArrayAnnotatedOutput output = new ByteArrayAnnotatedOutput(data);
