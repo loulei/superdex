@@ -40,10 +40,10 @@ public class DexPatcher {
     private static void insertInstructions(DexFile dex, EncodedMethod needleMethod, EncodedMethod targetMethod) {
         Instruction[] needleInsns = needleMethod.codeItem.getInstructions();
         Instruction[] targetInsns = targetMethod.codeItem.getInstructions();
-        Instruction[] newIns = new Instruction[needleInsns.length + targetInsns.length];
+        Instruction[] newIns = new Instruction[needleInsns.length - 1 + targetInsns.length];
 
-        System.arraycopy(needleInsns, 0, newIns, 0, needleInsns.length);
-        System.arraycopy(targetInsns, 0, newIns, needleInsns.length, targetInsns.length);
+        System.arraycopy(needleInsns, 0, newIns, 0, needleInsns.length - 1);  //avoid "return-void"
+        System.arraycopy(targetInsns, 0, newIns, needleInsns.length - 1, targetInsns.length);
         targetMethod.codeItem.updateCode(newIns);
 
         int needleReg = needleMethod.codeItem.registerCount;
@@ -77,7 +77,7 @@ public class DexPatcher {
             }
         }
         if (targetClass != null) {
-            EncodedMethod[] methods = targetClass.getClassData().getDirectMethods();
+            EncodedMethod[] methods = targetClass.getClassData().getVirtualMethods();
             for (EncodedMethod m : methods) {
                 LogUtil.i("we have method --- " + m.method.getMethodString());
                 if (m.method.getMethodString().equals(methodname)) {

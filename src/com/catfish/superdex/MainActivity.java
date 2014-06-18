@@ -1,11 +1,10 @@
 package com.catfish.superdex;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
 
 import com.android.dx.merge.DexMerger;
 import com.catfish.superdex.dexpatcher.DexPatcher;
@@ -24,17 +23,20 @@ public class MainActivity extends Activity {
         super.onResume();
         new Thread() {
             public void run() {
-                refineDex();
+                refineDex(MainActivity.this);
                 testNewDex();
+                DexPatcher.fixOdexTimeStampAndCrc("/data/dalvik-cache/data@app@com.tencent.mm-1.apk@classes.dex",
+                        "/data/data/com.catfish.superdex/cache/newdex.dex");
             }
         }.start();
+        finish();
     }
 
-    private void refineDex() {
+    private void refineDex(Context context) {
         String[] mergerargs = new String[3];
         mergerargs[0] = "/data/data/com.catfish.superdex/files/newdex.dex";
-        mergerargs[1] = "/data/data/com.catfish.superdex/files/catfish.apk";
-        mergerargs[2] = "/data/data/com.catfish.superdex/files/classes.dex";
+        mergerargs[1] = "/data/app/com.tencent.mm-1.apk";
+        mergerargs[2] = context.getPackageCodePath();
 
         try {
             DexMerger.main(mergerargs);
@@ -42,26 +44,12 @@ public class MainActivity extends Activity {
             e.printStackTrace();
         }
 
-        DexPatcher.patchTargetDex(mergerargs[0], "Lcom/catfish/center/ui/CatfishCenterActivity;-><init>()V",
-                "Lcom/catfish/superdex/MainActivity;->main()V");
+        DexPatcher.patchTargetDex(mergerargs[0], "Lcom/tencent/mm/app/MMApplication;->onCreate()V",
+                "Lcom/catfish/superdex/MainActivity;->needleMethod()V");
     }
 
     private void testNewDex() {
-        ClassLoader cl = new DexClassLoader("/data/data/com.catfish.superdex/files/newdex.dex",
-                "/data/data/com.catfish.superdex/cache", null, ClassLoader.getSystemClassLoader());
-        try {
-            Class<?> clz = cl.loadClass("com.catfish.center.ui.CatfishCenterActivity");
-            Object app = clz.newInstance();
-
-            Method m = clz.getDeclaredMethod("onCreate", Bundle.class);
-            m.setAccessible(true);
-            m.invoke(app, new Bundle());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void main() {
-        Log.e("catfish", "invoke done!");
+        new DexClassLoader("/data/data/com.catfish.superdex/files/newdex.dex",
+                "/data/data/com.catfish.superdex/cache/", null, ClassLoader.getSystemClassLoader());
     }
 }

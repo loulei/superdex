@@ -1061,7 +1061,11 @@ public final class DexMerger {
         DexBuffer dexA = new DexBuffer(new File(args[1]));
         DexBuffer dexB = new DexBuffer(new File(args[2]));
         DexBuffer merged = new DexMerger(dexA, dexB, CollisionPolicy.KEEP_FIRST).merge();
-        merged.writeTo(new File(args[0]));
+        File output = new File(args[0]);
+        if (!output.getParentFile().exists()) {
+            output.getParentFile().mkdirs();
+        }
+        merged.writeTo(output);
 
         System.gc();
     }
